@@ -3,7 +3,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import pdfplumber
 
-def generate_certificate(output_path, uid, candidate_name, course_name, org_name, institute_logo_path):
+def generate_certificate(output_path, customer_id, customer_name, energy_source, capacity_generated, powerhouse_id, powerhouse_name, date_of_claim, institute_logo_path):
     # Create a PDF document
     doc = SimpleDocTemplate(output_path, pagesize=letter)
 
@@ -15,53 +15,71 @@ def generate_certificate(output_path, uid, candidate_name, course_name, org_name
         logo = Image(institute_logo_path, width=150, height=150)
         elements.append(logo)
 
-    # Add institute name
+    # Add institute details
     institute_style = ParagraphStyle(
         "InstituteStyle",
         parent=getSampleStyleSheet()["Title"],
         fontName="Helvetica-Bold",
         fontSize=15,
-        spaceAfter=40,
+        spaceAfter=10,
     )
-    institute = Paragraph(org_name, institute_style)
-    elements.extend([institute, Spacer(1, 12)])
+    capacity_generated_divided = int(capacity_generated) / 1000
+    institute_text = f"<b>Customer Details:</b><br/>\
+                    Customer Name: <b>{customer_name}</b><br/>\
+                    Customer ID: <b>{customer_id}</b><br/>\
+                    Value of RECs:<b>{capacity_generated_divided}</b>"
+    institute = Paragraph(institute_text, institute_style)
+    elements.append(institute)
+    elements.append(Spacer(1, 12))
 
-    # Add title
-    title_style = ParagraphStyle(
-        "TitleStyle",
+    # Add header
+    header_style = ParagraphStyle(
+        "HeaderStyle",
         parent=getSampleStyleSheet()["Title"],
         fontName="Helvetica-Bold",
-        fontSize=25,
+        fontSize=18,
         spaceAfter=20,
     )
-    title1 = Paragraph("Certificate of Completion", title_style)
-    elements.extend([title1, Spacer(1, 6)])
+    header_text = "<b>Renewable Energy Certificate</b>"
+    header = Paragraph(header_text, header_style)
+    elements.append(header)
 
-    # Add recipient name, UID, and course name with increased line space
-    recipient_style = ParagraphStyle(
-        "RecipientStyle",
+    # Add hero section
+    hero_style = ParagraphStyle(
+        "HeroStyle",
         parent=getSampleStyleSheet()["BodyText"],
-        fontSize=14,
-        spaceAfter=6,
-        leading=18,
+        fontSize=12,
+        spaceAfter=12,
+        leading=15,
+    )
+    hero_text = f"<div>This certificate acknowledges <b>{customer_name}</b>'s commitment to sustainable energy practices and their contribution to the utilization of <b>{energy_source}</b> as a renewable energy source.</div><br/><br/>\
+          <div>With a generating capacity of <b>{capacity_generated}</b>, this certificate affirms <b>{customer_name}</b>'s role in promoting environmental responsibility and supporting clean energy initiatives.</div><br/><br/>\
+            <div>Stored securely within <b>{powerhouse_name}</b>'s powerhouse, this certificate represents a significant milestone in the journey towards a greener and more sustainable future.<div><br/><br/><br/>\
+        "
+
+    hero = Paragraph(hero_text, hero_style)
+    elements.append(hero)
+
+    # Add footer
+    footer_style = ParagraphStyle(
+        "FooterStyle",
+        parent=getSampleStyleSheet()["BodyText"],
+        fontSize=10,
+        spaceBefore=20,
+        leading=15,
         alignment=1
     )
-
-    recipient_text = f"This is to certify that<br/><br/>\
-                     <font color='red'> {candidate_name} </font><br/>\
-                     with UID <br/> \
-                    <font color='red'> {uid} </font> <br/><br/>\
-                     has successfully completed the course:<br/>\
-                     <font color='blue'> {course_name} </font>"
-
-    recipient = Paragraph(recipient_text, recipient_style)
-    elements.extend([recipient, Spacer(1, 12)])
+    footer_text = f"Verified - {date_of_claim}"
+    footer = Paragraph(footer_text, footer_style)
+    elements.append(footer)
 
     # Build the PDF document
     doc.build(elements)
+    with open(output_path, "rb") as file:
+        pdf_data = file.read()
 
     print(f"Certificate generated and saved at: {output_path}")
-
+    return pdf_data
 
 def extract_certificate(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
@@ -70,11 +88,10 @@ def extract_certificate(pdf_path):
         for page in pdf.pages:
             text += page.extract_text()
         lines = text.splitlines()
-
+        customer_name=lines[1][15:]
         org_name = lines[0]
         candidate_name = lines[3]
-        uid = lines[5]
-        course_name = lines[-1]
+        customer_id = lines[5]
+        energy_source = lines[-1]
 
-        return (uid, candidate_name, course_name, org_name)
-    
+        return (candidate_name)

@@ -18,17 +18,42 @@ def displayPDF(file):
 
 
 def view_certificate(certificate_id):
-    # Smart Contract Call
-    result = contract.functions.getCertificate(certificate_id).call()
-    ipfs_hash = result[4]
+    # Print Certificate ID
+    
+    # st.error("hello")
+    try:
+        result = contract.functions.getCertificate(certificate_id).call()
+        if result[0] == "":
+            st.error("Invalid Certificate ID!")
+            return
+    except Exception as e:
+        st.error(f"Failed to retrieve certificate details: {e}")
+        return
+    
+      # Print certificate details
+    # st.write("Certificate details:", result)
+   
+    ipfs_hash = result[7]  # Assuming index 7 contains the IPFS hash, adjust if necessary
+    # st.write("IPFS Hash:", ipfs_hash)
 
     pinata_gateway_base_url = 'https://gateway.pinata.cloud/ipfs'
     content_url = f"{pinata_gateway_base_url}/{ipfs_hash}"
+    
+
+    # Fetch PDF content from Pinata
     response = requests.get(content_url)
+
+    
     with open("temp.pdf", 'wb') as pdf_file:
         pdf_file.write(response.content)
+
+    # Display PDF
     displayPDF("temp.pdf")
+
+    # Remove temporary PDF file
     os.remove("temp.pdf")
+   
+
 
 
 def hide_icons():
